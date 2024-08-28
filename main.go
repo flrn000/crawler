@@ -7,6 +7,7 @@ import (
 
 func main() {
 	cmdArgs := os.Args[1:]
+	var baseURL string
 
 	if len(cmdArgs) < 1 {
 		fmt.Println("no website provided")
@@ -15,6 +16,14 @@ func main() {
 		fmt.Println("too many arguments provided")
 		os.Exit(1)
 	} else {
-		fmt.Printf("starting crawl\n%v\n", cmdArgs[0])
+		baseURL = cmdArgs[0]
+		fmt.Printf("starting crawl\n%v\n", baseURL)
 	}
+
+	htmlBody, err := getHTML(baseURL)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(htmlBody)
 }
