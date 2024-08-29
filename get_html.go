@@ -1,10 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 func getHTML(rawURL string) (string, error) {
@@ -19,8 +19,9 @@ func getHTML(rawURL string) (string, error) {
 		return "", fmt.Errorf("error: Status %d", res.StatusCode)
 	}
 
-	if res.Header.Get("Content-Type") != "text/html" {
-		return "", errors.New("response content type is not 'text/html'")
+	contentType := res.Header.Get("Content-Type")
+	if !strings.Contains(contentType, "text/html") {
+		return "", fmt.Errorf("invalid response content type: %v", contentType)
 	}
 
 	result, err := io.ReadAll(res.Body)
