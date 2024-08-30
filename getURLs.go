@@ -33,11 +33,7 @@ func findAnchorElements(n *html.Node, results *[]string, baseURL *url.URL) error
 	return nil
 }
 
-func getURLsFromHTML(htmlBody, rawBaseURL string) ([]string, error) {
-	baseURL, err := url.Parse(rawBaseURL)
-	if err != nil {
-		return []string{}, fmt.Errorf("error parsing url: %w", err)
-	}
+func getURLsFromHTML(htmlBody string, baseURL *url.URL) ([]string, error) {
 	r := strings.NewReader(htmlBody)
 	doc, err := html.Parse(r)
 	if err != nil {

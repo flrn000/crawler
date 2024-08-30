@@ -5,51 +5,60 @@ import (
 	"net/url"
 )
 
-func crawlPage(rawBaseURL, rawCurrentURL string, pages map[string]int) map[string]int {
+func (cfg *config) crawlPage(rawCurrentURL string) {
 	htmlBody, err := getHTML(rawCurrentURL)
 	if err != nil {
 		fmt.Printf("error getting html:%v", err)
-		return pages
+		return
 	}
 
-	urlsToCrawl, err := getURLsFromHTML(htmlBody, rawBaseURL)
+	urlsToCrawl, err := getURLsFromHTML(htmlBody, cfg.baseURL)
 	if err != nil {
 		fmt.Printf("error getting urls:%v", err)
-		return pages
+		return
 	}
-
-	baseURL, err := url.Parse(rawBaseURL)
-	if err != nil {
-		fmt.Println(err)
-		return pages
-	}
+	fmt.Println("crawling: ", rawCurrentURL)
 
 	for _, currURL := range urlsToCrawl {
 		currentURL, err := url.Parse(currURL)
 		if err != nil {
 			fmt.Println(err)
-			return pages
+			return
 		}
 
-		if currentURL.Hostname() != baseURL.Hostname() {
-			return pages
+		if currentURL.Hostname() != cfg.baseURL.Hostname() {
+			return
 		}
 
 		normalizedURL, err := normalizeURL(currURL)
 		if err != nil {
 			fmt.Println(err)
-			return pages
+			return
 		}
 
-		if _, ok := pages[normalizedURL]; ok {
-			pages[normalizedURL] += 1
+		cfg.mu.Lock()
+		_, visited := cfg.pages[normalizedURL]
+		cfg.mu.Unlock()
+
+		if visited {
+			cfg.mu.Lock()
+			cfg.pages[normalizedURL] += 1
+			cfg.mu.Unlock()
 			continue
 		} else {
-			pages[normalizedURL] = 1
+			cfg.mu.Lock()
+			cfg.pages[normalizedURL] = 1
+			cfg.mu.Unlock()
 		}
 
-		crawlPage(rawBaseURL, currURL, pages)
+		cfg.wg.Add(1)
+		go func() {
+			cfg.concurrencyControl <- struct{}{}
+			defer func() {
+				<-cfg.concurrencyControl
+				cfg.wg.Done()
+			}()
+			cfg.crawlPage(currURL)
+		}()
 	}
-
-	return pages
 }
