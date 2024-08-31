@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"sync"
 )
 
@@ -13,23 +14,31 @@ type config struct {
 	mu                 *sync.Mutex
 	concurrencyControl chan struct{}
 	wg                 *sync.WaitGroup
+	maxPages           int
 }
-
-const maxConcurrent int = 5
 
 func main() {
 	cmdArgs := os.Args[1:]
-	var baseURL string
 
-	if len(cmdArgs) < 1 {
-		fmt.Println("no website provided")
+	if len(cmdArgs) < 3 {
+		fmt.Println("not enough arguments provided")
 		os.Exit(1)
-	} else if len(cmdArgs) > 1 {
+	} else if len(cmdArgs) > 3 {
 		fmt.Println("too many arguments provided")
 		os.Exit(1)
-	} else {
-		baseURL = cmdArgs[0]
-		fmt.Printf("starting crawl\n%v\n", baseURL)
+	}
+
+	baseURL := cmdArgs[0]
+	maxConcurrent, err := strconv.Atoi(cmdArgs[1])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	maxPages, err := strconv.Atoi(cmdArgs[2])
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 
 	parsedURL, err := url.Parse(baseURL)
@@ -44,11 +53,16 @@ func main() {
 		mu:                 &sync.Mutex{},
 		concurrencyControl: make(chan struct{}, maxConcurrent),
 		wg:                 &sync.WaitGroup{},
+		maxPages:           maxPages,
 	}
 
-	cfg.crawlPage(cfg.baseURL.String())
+	fmt.Printf("starting crawl\n%v\n", baseURL)
 
+	cfg.wg.Add(1)
+	go cfg.crawlPage(baseURL)
 	cfg.wg.Wait()
 
-	fmt.Println(cfg.pages, len(cfg.pages))
+	for normalizedURL, count := range cfg.pages {
+		fmt.Printf("%s - %d\n", normalizedURL, count)
+	}
 }
