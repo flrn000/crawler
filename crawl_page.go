@@ -44,14 +44,14 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 		return
 	}
 
-	urlsToCrawl, err := getURLsFromHTML(htmlBody, cfg.baseURL)
+	_, err = getProductsFromHTML(htmlBody)
 	if err != nil {
 		fmt.Printf("error getting urls:%v", err)
 		return
 	}
 
-	for _, currURL := range urlsToCrawl {
-		cfg.wg.Add(1)
-		go cfg.crawlPage(currURL)
-	}
+	// for _, currURL := range urlsToCrawl {
+	// 	cfg.wg.Add(1)
+	// 	go cfg.crawlPage(currURL)
+	// }
 }

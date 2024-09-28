@@ -1,49 +1,69 @@
 package main
 
 import (
-	"fmt"
-	"net/url"
 	"strings"
 
 	"golang.org/x/net/html"
 )
 
-func findAnchorElements(n *html.Node, results *[]string, baseURL *url.URL) error {
-	if n.Type == html.ElementNode && n.Data == "a" {
-		for _, attr := range n.Attr {
-			if attr.Key == "href" {
-				hrefURL, err := url.Parse(attr.Val)
-				if err != nil {
-					return fmt.Errorf("error parsing href: %w", err)
-				}
+type Product struct {
+	info  string
+	price string
+}
 
-				if hrefURL.Path != "" {
-					*results = append(*results, baseURL.ResolveReference(hrefURL).String())
-				} else {
-					break
+var currentProduct Product
+
+func findProductInfo(n *html.Node, results *[]Product) {
+	if n.Type == html.ElementNode {
+		// Find product title in the <a> tag with class "card-v2-title"
+		if n.Data == "a" {
+			for _, attr := range n.Attr {
+				if attr.Key == "class" && strings.Contains(attr.Val, "card-v2-title") {
+					currentProduct.info = n.FirstChild.Data
 				}
 			}
+		}
+
+		// Find product price in the <p> tag with class "product-new-price"
+		if n.Data == "p" {
+			for _, attr := range n.Attr {
+				if attr.Key == "class" && strings.Contains(attr.Val, "product-new-price") {
+					if n.FirstChild != nil {
+						price := n.FirstChild.Data
+
+						if n.FirstChild.NextSibling != nil && n.FirstChild.NextSibling.LastChild != nil {
+							price += "," + n.FirstChild.NextSibling.LastChild.Data
+						}
+
+						currentProduct.price = price
+					}
+				}
+			}
+		}
+
+		// If both title and price are found, add the product to the list
+		if currentProduct.info != "" && currentProduct.price != "" {
+			*results = append(*results, currentProduct)
+			// Reset current product for the next item
+			currentProduct = Product{}
 		}
 	}
 
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		findAnchorElements(c, results, baseURL)
+		findProductInfo(c, results)
 	}
-
-	return nil
 }
 
-func getURLsFromHTML(htmlBody string, baseURL *url.URL) ([]string, error) {
+func getProductsFromHTML(htmlBody string) ([]Product, error) {
 	r := strings.NewReader(htmlBody)
 	doc, err := html.Parse(r)
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
 
-	var results []string
-	if err := findAnchorElements(doc, &results, baseURL); err != nil {
-		return results, err
-	}
+	var results []Product
+
+	findProductInfo(doc, &results)
 
 	return results, nil
 }

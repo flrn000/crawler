@@ -80,13 +80,13 @@ func TestGetURLs(t *testing.T) {
 
 	for i, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			baseURL, err := url.Parse(tc.inputURL)
+			_, err := url.Parse(tc.inputURL)
 			if err != nil {
 				t.Errorf("Test %v - %s FAIL: couldn't parse input URL: %v", i, tc.name, err)
 				return
 			}
 
-			actual, err := getURLsFromHTML(tc.inputBody, baseURL)
+			actual, err := getProductsFromHTML(tc.inputBody)
 			if err != nil {
 				t.Errorf("Test %v - '%s' FAIL: unexpected error: %v", i, tc.name, err)
 				return
