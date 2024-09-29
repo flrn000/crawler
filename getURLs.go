@@ -32,7 +32,7 @@ func findProductInfo(n *html.Node, results *[]Product) {
 						price := n.FirstChild.Data
 
 						if n.FirstChild.NextSibling != nil && n.FirstChild.NextSibling.LastChild != nil {
-							price += "," + n.FirstChild.NextSibling.LastChild.Data
+							price += "." + n.FirstChild.NextSibling.LastChild.Data
 						}
 
 						currentProduct.price = price

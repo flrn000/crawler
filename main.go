@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
 	"log"
 	"net/url"
@@ -15,6 +16,30 @@ type config struct {
 	concurrencyControl chan struct{}
 	wg                 *sync.WaitGroup
 	maxPages           int
+}
+
+type Component struct {
+	Name         string
+	Type         string
+	Manufacturer string
+	Model        string
+	Price        string
+}
+
+func createCSVWriter(filename string) (*csv.Writer, *os.File, error) {
+	f, err := os.Create(filename)
+	if err != nil {
+		return nil, nil, err
+	}
+	writer := csv.NewWriter(f)
+	return writer, f, nil
+}
+
+func writeCSVRecord(writer *csv.Writer, record []string) {
+	err := writer.Write(record)
+	if err != nil {
+		fmt.Println("Error writing record to CSV:", err)
+	}
 }
 
 func main() {
@@ -68,8 +93,36 @@ func main() {
 		log.Fatalf("getProductsFromHTML: %v", err)
 	}
 
+	w, file, err := createCSVWriter("components.csv")
+	if err != nil {
+		log.Fatalf("creating CSV writer: %v", err)
+	}
+
+	defer file.Close()
+
+	var results [][]string
+
 	for _, product := range products {
-		fmt.Printf("%s pret: %s\n", product.info, product.price)
+		result := getProductInfoParts(product)
+		results = append(results, []string{
+			product.info,
+			result.productType,
+			result.manufacturer,
+			result.model,
+			product.price,
+		})
+	}
+
+	headers := []string{"name", "type", "manufacturer", "model", "price"}
+	writeCSVRecord(w, headers)
+	//  \copy components (name, type, manufacturer, model, price) from './components.csv' WITH DELIMITER ',' CSV HEADER;
+	for _, r := range results {
+		writeCSVRecord(w, r)
+	}
+
+	w.Flush()
+	if err := w.Error(); err != nil {
+		fmt.Println("flushing csv writer:", err)
 	}
 
 	// cfg.wg.Add(1)
