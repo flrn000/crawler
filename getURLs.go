@@ -30,6 +30,7 @@ func findProductInfo(n *html.Node, results *[]Product) {
 				if attr.Key == "class" && strings.Contains(attr.Val, "product-new-price") {
 					if n.FirstChild != nil {
 						price := n.FirstChild.Data
+						price = strings.Replace(price, ".", "", 1)
 
 						if n.FirstChild.NextSibling != nil && n.FirstChild.NextSibling.LastChild != nil {
 							price += "." + n.FirstChild.NextSibling.LastChild.Data

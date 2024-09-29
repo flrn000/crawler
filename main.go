@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strconv"
 	"sync"
 )
 
@@ -54,6 +55,11 @@ func main() {
 	// }
 
 	baseURL := cmdArgs[0]
+	componentType, err := strconv.Atoi(cmdArgs[1])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	// maxConcurrent, err := strconv.Atoi(cmdArgs[1])
 	// if err != nil {
 	// 	fmt.Println(err)
@@ -103,7 +109,7 @@ func main() {
 	var results [][]string
 
 	for _, product := range products {
-		result := getProductInfoParts(product)
+		result := getProductParts(product, ComponentType(componentType))
 		results = append(results, []string{
 			product.info,
 			result.productType,
